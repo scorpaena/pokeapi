@@ -76,7 +76,7 @@ names_
 df.columns=names_
 # df.drop(df.index[0])
 df = df.drop(index=0)
-print(df)
+# print(df)
 # df = df.to_csv(f'csv_files/poke_{NOW}.csv', index=False)
 
 # print(df)
@@ -106,8 +106,8 @@ print(df)
 #             csv_writer.writerow(json_data.values())
 
 def table_from_csv():
-    table = etl.fromcsv(f'{latest_file}')
-    return table
+    table = etl.fromcsv('data_parser/csv_files/ditto_07-31-21 18:56:45.csv')
+    return table.look()
 
 # print(table_from_csv())
 # create_csv_file(json_data=flatten_json(get_json_data_from_url()))
@@ -127,4 +127,4 @@ def create_csv_file(json_data):
         #     csv_writer.writerow(json_data.values())
 # print(create_csv_file(json_data=get_json_data_from_url()))
 
-# print(etl.fromcsv(df))
+print(table_from_csv())

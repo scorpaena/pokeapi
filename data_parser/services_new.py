@@ -1,20 +1,12 @@
 import requests
-import petl as etl
+# import petl as etl
 from datetime import datetime
-import glob
+# import glob
 import os
-import pandas as pd
+# import pandas as pd
 import csv
-import json
+# import json
 
-# list_of_files = glob.glob(
-#     '/home/linuxlite/Documents/django3.2/pokeapi/data_parser/csv_files/*.csv'
-# )
-# latest_file = max(list_of_files, key=os.path.getmtime)
-
-# NOW = datetime.now().strftime('%m-%d-%y %H:%M:%S')
-
-# URL = 'https://pokeapi.co/api/v2/pokemon/ditto'
 
 class GetJSONDataFromAPI:
     
@@ -33,6 +25,25 @@ class TransformJSONtoCSV:
         self.names = []
         self.now = datetime.now().strftime('%m-%d-%y %H:%M:%S')
 
+    def create_csv_file_name(self, url):
+        name = url.split('/')[-1]
+        return f'{name}_{self.now}.csv'
+
+    def create_csv_file(self, json_data, file_name):
+        with open(f'data_parser/csv_files/{file_name}', 'w') as csv_file:
+            csv_writer = csv.writer(csv_file, lineterminator='\n')
+            # csv_writer.writerow(json_data.keys())
+            # for data in json_data:
+            csv_writer.writerow(json_data.keys())
+            csv_writer.writerow(json_data.values())
+
+    # def create_csv_file(self, json_data, file_name):
+    #     with open(f'data_parser/csv_files/{file_name}', 'w') as csv_file:
+    #         csv_writer = csv.writer(csv_file, lineterminator='\n')
+    #         csv_writer.writerow(json_data.keys())
+    #         for data in json_data:
+    #             csv_writer.writerow(json_data.values())
+'''
     def parse_nested_json(self, json_data, prefix=''):
         if isinstance(json_data, dict):
             for key, value in json_data.items():
@@ -64,20 +75,34 @@ class TransformJSONtoCSV:
 
     def create_csv_file(self, data, file_name):
         return data.to_csv(f'data_parser/csv_files/{file_name}', index=False)
-
+'''
 
 class TransformCSVtoJSON:
     
-    def __init__(self, file):
-        self.file = file
+    def __init__(self):
+        # self.file = file
         self.json_array = []
 
-    def create_json_view(self):
-        with open(self.file, encoding='utf-8') as csv_file:
+    def get_csv_file(self, file_name):
+        return f'data_parser/csv_files/{file_name}'
+
+    def create_json_view(self, file):
+        # file = self.get_csv_file(file_name)
+        with open(file, encoding='utf-8') as csv_file:
             csv_reader = csv.DictReader(csv_file)
             for row in csv_reader:
                 self.json_array.append(row)
         return self.json_array
 
-# json = TransformCSVtoJSON(file='data_parser/csv_files/charmander_07-30-21 12:50:26.csv')
-# print(json.create_json_view())
+
+# def get_file(file_name):
+#     return f'data_parser/csv_files/{file_name}'
+    # path = f'data_parser/csv_files/{file_name}'
+    # for files in os.walk(path):
+    #     file = files.find(file_name)
+    #         if found != -1:
+    #             print()
+    #             print(fileName, 'Found\n')
+    #             break
+    #     except:
+    #         exit()

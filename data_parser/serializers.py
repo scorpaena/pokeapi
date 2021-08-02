@@ -1,22 +1,9 @@
 from rest_framework import serializers
 from .models import PokeFilesModel
-from .services_new import GetJSONDataFromAPI, TransformJSONtoCSV
 
 
 class PokeFilesSerializer(serializers.ModelSerializer):
 
-    def create(self, validated_data):
-        url = validated_data['url']
-        data_from_api = GetJSONDataFromAPI(url)
-        json_data = data_from_api.get_data()
-        character_name = data_from_api.get_character_name()
-        csv = TransformJSONtoCSV()
-        file_name = csv.create_csv_file_name(character_name)
-        csv.create_csv_file(json_data, file_name)
-        return PokeFilesModel.objects.create(
-            url=url, file_name=file_name, character_name=character_name, 
-        )
-   
     class Meta:
         model = PokeFilesModel
         fields = [

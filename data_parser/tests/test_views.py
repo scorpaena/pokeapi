@@ -29,13 +29,21 @@ def test_pokemon_list_view(client, pokemon):
     assert request.status_code == 200
     assert request.data["count"] == 1
 
+
 def test_pokemon_create_view(client):
     request = client.post("/api/files/",
-        data={
-            "character_name": "pikachu", 
-            "file_name": "pikachu", 
-            "url": 'https://pokeapi.co/api/v2/pokemon/pikachu',
-        }
+        data={"url": 'https://pokeapi.co/api/v2/pokemon/pikachu'}
     )
     assert request.status_code == 201
     assert PokeFilesModel.objects.last().character_name == "pikachu"
+
+
+# def test_pokemon_retrieve_view(client):
+#     request = client.post("/api/files/",
+#         data={
+#             "url": 'https://pokeapi.co/api/v2/pokemon/pikachu',
+#         }
+#     )
+#     poke_id = PokeFilesModel.objects.last().id
+#     request = client.get(f"/api/files/{poke_id}")
+    # assert request.status_code == 200

@@ -1,130 +1,68 @@
 import requests
-import csv
-import json
-import petl as etl
 from datetime import datetime
-import glob
-import os
-import pandas as pd
-
-list_of_files = glob.glob(
-    '/home/linuxlite/Documents/django3.2/pokeapi/data_parser/csv_files/*.csv'
-)
-latest_file = max(list_of_files, key=os.path.getmtime)
+import csv
+import sys
+from django.core.mail import send_mail
+from pokeapi.settings import EMAIL_HOST_USER as my_email
+from pokeapi.settings import EMAIL_RECIPIENT_USER as user_email
 
 
+class GetName:
+    
+    def __init__(self, url):
+        self.url = url
+        self.now = datetime.now().strftime('%m-%d-%y %H:%M:%S')
 
-NOW = datetime.now().strftime('%m-%d-%y %H:%M:%S')
+    def get_character_name(self):
+        return self.url.split('/')[-1]
 
-URL = 'https://pokeapi.co/api/v2/pokemon/ditto'
-
-def get_json_data_from_url(url=URL):
-    response = requests.get(url)
-    json_data = response.json()
-    return json_data
-
-# def create_csv_file(json_data):
-#     with open(f'csv_files/poke_{NOW}.csv', 'w') as csv_file:
-#         csv_writer = csv.writer(csv_file, lineterminator='\n')#, quoting=csv.QUOTE_ALL)
-#         # for data in json_data:
-#         csv_writer.writerow(json_data.keys())
+    def get_csv_file_name(self, character_name):
+        return f'{character_name}_{self.now}.csv'
 
 
-# def flatten_json(y):
-#     out = {}
+class GetJSONDataFromAPI:
+    
+    def __init__(self, url):
+        self.url = url
 
-#     def flatten(x, name=''):
-#         if type(x) is dict:
-#             for a in x:
-#                 flatten(x[a], name + a + '_')
-#         elif type(x) is list:
-#             i = 0
-#             for a in x:
-#                 flatten(a, name + str(i) + '_')
-#                 i += 1
-#         else:
-#             out[name[:-1]] = x
+    def get_data(self):
+        response = requests.get(self.url)
+        return response.json()
+    
 
-#     flatten(y)
-#     return out
-
-g=[]
-def print_dict(v, prefix=''):
-    if isinstance(v, dict):
-        for k, v2 in v.items():
-            p2="{}.{}".format(prefix, k)
-            print_dict(v2, p2)
-    elif isinstance(v, list):
-        for i, v2 in enumerate(v):
-            p2="{}{}".format(prefix, i)
-            print_dict(v2, p2)
-    else:
-        g.append(["{}".format(prefix), v])
-    return g
-
-df = pd.DataFrame.from_dict(print_dict(get_json_data_from_url()), orient='columns').T
-df.columns=df.iloc[0]
-# df.drop(df.index[1])
-
-# print(df)
-
-names_=[]
-for i in df.columns:
-    names_.append(i.split('.')[1])
-names_
-
-df.columns=names_
-# df.drop(df.index[0])
-df = df.drop(index=0)
-# print(df)
-# df = df.to_csv(f'csv_files/poke_{NOW}.csv', index=False)
-
-# print(df)
-# def get_names(list):
-#     for i in list.c
-
-# print(flatten_json(get_json_data_from_url()))
-# print(print_dict(get_json_data_from_url()))
+class TransformJSONtoCSV:
+    
+    def create_csv_file(self, json_data, file_name):
+        with open(f'data_parser/csv_files/{file_name}', 'w') as csv_file:
+            csv_writer = csv.writer(csv_file, lineterminator='\n')
+            csv_writer.writerow(json_data.keys())
+            csv_writer.writerow(json_data.values())
 
 
-# def create_csv_file(json_data):
-#     with open(f'csv_files/poke_{NOW}.csv', 'w') as csv_file:
-#         csv_writer = csv.writer(csv_file, lineterminator='\n')#, quoting=csv.QUOTE_ALL)
-#         count = 0
-#         for data in json_data:
-#             if count == 0:
-#                 csv_writer.writerow(json_data.keys())
-#                 count += 1
-#             csv_writer.writerow(json_data.values())
+class TransformCSVtoJSON:
+    
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.json_data = {}
 
-# def create_csv_file(json_data):
-#     with open(f'csv_files/poke_{NOW}.csv', 'w') as csv_file:
-#         csv_writer = csv.writer(csv_file, lineterminator='\n')#, quoting=csv.QUOTE_ALL)
-#         header = json_data.keys()
-#         csv_writer.writerow(header)
-#         for data in json_data:
-#             csv_writer.writerow(json_data.values())
+    def get_csv_file(self):
+        return f'data_parser/csv_files/{self.file_name}'
 
-def table_from_csv():
-    table = etl.fromcsv('data_parser/csv_files/ditto_07-31-21 18:56:45.csv')
-    return table.look()
+    def create_json_view(self):
+        csv.field_size_limit(sys.maxsize)
+        file = self.get_csv_file()
+        with open(file, newline = '') as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                self.json_data.update(row)
+        return self.json_data
 
-# print(table_from_csv())
-# create_csv_file(json_data=flatten_json(get_json_data_from_url()))
-# print(get_json_data_from_url().keys())
-# print(create_csv_file(json_data=get_json_data_from_url()))
-# print((get_json_data_from_url().keys()))
 
-def create_csv_file(json_data):
-    with open(f'csv_files/poke_{NOW}.csv', 'w') as csv_file:
-        csv_writer = csv.writer(csv_file, lineterminator='\n')#, quoting=csv.QUOTE_ALL)
-        key_list = list(json_data.keys())
-        for i in range(len(key_list)):
-            for data in json_data[key_list[i]]:
-                print(data)
-        # csv_writer.writerow(header)
-        # for data in json_data:
-        #     csv_writer.writerow(json_data.values())
-# print(create_csv_file(json_data=get_json_data_from_url()))
-
-print(table_from_csv())
+def send_email(file_name):
+    send_mail(
+        subject = f"{file_name}",
+        message = "The data has been downloaded",
+        from_email = my_email,
+        recipient_list = [user_email,],
+        fail_silently=False
+    )

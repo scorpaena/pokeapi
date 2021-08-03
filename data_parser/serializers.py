@@ -5,10 +5,9 @@ from .tasks import download_data_from_api
 
 
 class PokeFilesSerializer(serializers.ModelSerializer):
-
     def create(self, validated_data):
         file_name = csv_file_name()
-        validated_data['file_name'] = file_name
+        validated_data["file_name"] = file_name
         download_data_from_api.delay(file_name)
         return super().create(validated_data)
 
@@ -29,7 +28,6 @@ class PokeFilesSerializer(serializers.ModelSerializer):
 
 
 class PokeFileDetailSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = PokeFilesModel
         fields = [

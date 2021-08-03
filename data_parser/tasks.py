@@ -1,9 +1,6 @@
 from pokeapi.celery import app
-from .services import (
-    GetPaginationParameter, 
-    GetPeopleFromAPI, 
-    TransformJSONtoCSV
-)
+from .services import GetPaginationParameter, GetPeopleFromAPI, TransformJSONtoCSV
+
 
 @app.task
 def download_data_from_api(file_name):

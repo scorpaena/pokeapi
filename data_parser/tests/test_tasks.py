@@ -9,6 +9,5 @@ def celery_app(request):
     return app
 
 def test_task(celery_app):
-    url = 'https://pokeapi.co/api/v2/pokemon/beedrill'
-    file_name = 'beedrill'
-    download_data_from_api.delay(url, file_name)
+    file_name = 'people'
+    download_data_from_api.delay(file_name)

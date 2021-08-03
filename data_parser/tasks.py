@@ -1,10 +1,18 @@
 from pokeapi.celery import app
-from .services import GetJSONDataFromAPI, TransformJSONtoCSV, send_email
+from .services import (
+    GetPaginationParameter, 
+    GetPeopleFromAPI, 
+    TransformJSONtoCSV
+)
 
 @app.task
-def download_data_from_api(url, file_name):
-    data_from_api = GetJSONDataFromAPI(url)
-    json_data = data_from_api.get_data()
+def download_data_from_api(file_name):
+    parameter = GetPaginationParameter()
+    people_count = parameter.get_people_count()
+    pages_count = parameter.get_pages_count()
+
+    people_blank = GetPeopleFromAPI()
+    people = people_blank.get_people(pages_count)
+
     csv = TransformJSONtoCSV()
-    csv.create_csv_file(json_data, file_name)
-    send_email(file_name)
+    csv.create_csv_file(file_name, people, people_count)

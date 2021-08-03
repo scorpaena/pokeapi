@@ -3,59 +3,82 @@ from datetime import datetime
 import csv
 import sys
 from django.core.mail import send_mail
-from pokeapi.settings import EMAIL_HOST_USER as my_email
-from pokeapi.settings import EMAIL_RECIPIENT_USER as user_email
+from math import ceil
 
 
-class GetName:
-    
-    def __init__(self, url):
-        self.url = url
-        self.now = datetime.now().strftime('%m-%d-%y %H:%M:%S')
+class GetPaginationParameter:
 
-    def get_character_name(self):
-        return self.url.split('/')[-1]
+    def __init__(self):
+        self.people_url = 'https://swapi.dev/api/people/'
 
-    def get_csv_file_name(self, character_name):
-        return f'{character_name}_{self.now}.csv'
+    def get_people_count(self):
+        response = requests.get(self.people_url).json()
+        return response.get('count')
+
+    def get_pages_count(self):
+        count = self.get_people_count()
+        return ceil(count/10)
 
 
-class GetJSONDataFromAPI:
-    
-    def __init__(self, url):
-        self.url = url
+class GetPeopleFromAPI:
 
-    def get_data(self):
-        response = requests.get(self.url)
-        return response.json()
-    
+    def __init__(self):
+        self.people_url = 'https://swapi.dev/api/people/'
+        self.lookup_dict = {
+            'homeworld': 'name',
+            'films': 'title',
+            'species': 'name',
+            'vehicles': 'name',
+            'starships': 'name',
+        }
+
+    def get_people_url(self, pages_count):
+        url_list = []
+        for i in range(1, pages_count+1):
+            url = self.people_url + f'?page={i}'
+            url_list.append(url)
+        return url_list
+
+    def get_item_name_from_url(self, lookup_key, urls):
+        items_list = []
+        if isinstance(urls, list):
+            for url in urls:
+                response = requests.get(url)
+                item = response.json().get(self.lookup_dict[lookup_key])
+                items_list.append(item)
+            return items_list
+        else:
+            response = requests.get(urls)
+            return response.json().get(self.lookup_dict[lookup_key])
+
+    def get_people(self, pages_count):
+        result_dict = {}
+        url_list = self.get_people_url(pages_count)
+        for url in url_list:
+            response = requests.get(url).json()
+            for item in response['results']:
+                for key in item:
+                    if key in self.lookup_dict.keys():
+                        result_dict[key] = self.get_item_name_from_url(
+                            lookup_key=key, urls=item[key]
+                        )
+                    else:
+                        result_dict[key] = item[key]
+                yield result_dict
+
 
 class TransformJSONtoCSV:
     
-    def create_csv_file(self, json_data, file_name):
+    def create_csv_file(self, file_name, people, people_count):
         with open(f'data_parser/csv_files/{file_name}', 'w') as csv_file:
             csv_writer = csv.writer(csv_file, lineterminator='\n')
-            csv_writer.writerow(json_data.keys())
-            csv_writer.writerow(json_data.values())
+            for i in range(people_count):
+                csv_writer.writerow(people)
 
 
-class TransformCSVtoJSON:
-    
-    def __init__(self, file_name):
-        self.file_name = file_name
-        self.json_data = {}
-
-    def get_csv_file(self):
-        return f'data_parser/csv_files/{self.file_name}'
-
-    def create_json_view(self):
-        csv.field_size_limit(sys.maxsize)
-        file = self.get_csv_file()
-        with open(file, newline = '') as csv_file:
-            csv_reader = csv.DictReader(csv_file)
-            for row in csv_reader:
-                self.json_data.update(row)
-        return self.json_data
+def csv_file_name():
+    now = datetime.now().strftime('%m-%d-%y %H:%M:%S')
+    return f'people_{now}.csv'
 
 
 def send_email(file_name):

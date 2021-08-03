@@ -12,11 +12,10 @@ def user(db):
     return User.objects.create(username="foo", password="bar123$%")
 
 @pytest.fixture
-def pokemon(db):
+def people(db):
     return PokeFilesModel.objects.create(
-        character_name="foo", 
         file_name="bar",
-        url='https://pokeapi.co/api/v2/pokemon/foo',
+        url='https://swapi.dev/api/people/',
     )
 
 @pytest.fixture
@@ -24,26 +23,13 @@ def client(user):
     return APIClient()
 
 
-def test_pokemon_list_view(client, pokemon):
+def test_pokemon_list_view(client, people):
     request = client.get("/api/files/")
     assert request.status_code == 200
     assert request.data["count"] == 1
 
 
 def test_pokemon_create_view(client):
-    request = client.post("/api/files/",
-        data={"url": 'https://pokeapi.co/api/v2/pokemon/pikachu'}
-    )
+    request = client.post("/api/files/")
     assert request.status_code == 201
-    assert PokeFilesModel.objects.last().character_name == "pikachu"
-
-
-# def test_pokemon_retrieve_view(client):
-#     request = client.post("/api/files/",
-#         data={
-#             "url": 'https://pokeapi.co/api/v2/pokemon/pikachu',
-#         }
-#     )
-#     poke_id = PokeFilesModel.objects.last().id
-#     request = client.get(f"/api/files/{poke_id}")
-    # assert request.status_code == 200
+    assert PokeFilesModel.objects.last().file_name.startswith('people') == True

@@ -1,34 +1,22 @@
 import pytest
+import os
 from pathlib import Path
 from data_parser.services import (
+    APIClient,
+    APIDataProcessor,
     TransformJSONtoCSV,
-    GetPaginationParameter,
-    GetPeopleFromAPI,
     csv_file_name,
 )
 
 
 @pytest.fixture
-def url():
-    return "https://swapi.dev/api/people/"
+def csv():
+    return TransformJSONtoCSV()
 
 
 @pytest.fixture
-def pages_count():
-    parameter = GetPaginationParameter()
-    return parameter.get_pages_count()
-
-
-@pytest.fixture
-def people_count():
-    parameter = GetPaginationParameter()
-    return parameter.get_people_count()
-
-
-@pytest.fixture
-def people(pages_count):
-    people_blank = GetPeopleFromAPI()
-    return people_blank.get_people(pages_count)
+def api_client():
+    return APIClient()
 
 
 @pytest.fixture
@@ -41,14 +29,41 @@ def test_csv_file_name():
     assert file_name.startswith("people") == True
 
 
-def test_data():
-    people_blank = GetPeopleFromAPI()
-    people = people_blank.get_people(pages_count=1)
-    assert str(type(people)) == "<class 'generator'>"
+def test_api_client_people(api_client):
+    people = api_client.get_people_detail(url="https://swapi.dev/api/people/1/")
+    assert people == "Luke Skywalker"
 
 
-def test_transform_to_csv(people, file_name, people_count):
-    blank = TransformJSONtoCSV()
-    file = blank.create_csv_file(file_name, people, people_count)
-    my_file = Path(f"data_parser/csv_files/{file_name}")
-    assert my_file.is_file() == True
+def test_api_client_planets(api_client):
+    planets = api_client.get_planets_detail(url="https://swapi.dev/api/planets/1/")
+    assert planets == "Tatooine"
+
+
+def test_api_client_films(api_client):
+    films = api_client.get_films_detail(url="https://swapi.dev/api/films/1/")
+    assert films == "A New Hope"
+
+
+def test_api_client_species(api_client):
+    species = api_client.get_species_detail(url="https://swapi.dev/api/species/1/")
+    assert species == "Human"
+
+
+def test_api_client_vehicles(api_client):
+    vehicles = api_client.get_vehicles_detail(url="https://swapi.dev/api/vehicles/4/")
+    assert vehicles == "Sand Crawler"
+
+
+def test_api_client_starships(api_client):
+    starships = api_client.get_starships_detail(
+        url="https://swapi.dev/api/starships/2/"
+    )
+    assert starships == "CR90 corvette"
+
+
+def test_transform_to_csv(csv, file_name):
+    csv.create_csv_file(file_name)
+    file = Path(f"data_parser/csv_files/{file_name}")
+    file_not_empty = os.stat(file).st_size
+    assert file.is_file() == True
+    assert file_not_empty != 0

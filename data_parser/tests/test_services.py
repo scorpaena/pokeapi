@@ -29,11 +29,29 @@ def test_csv_file_name():
     assert file_name.startswith("people") == True
 
 
-def test_api_client_people(api_client):
-    people = api_client.get_people_detail(url="https://swapi.dev/api/people/1/")
-    assert people == "Luke Skywalker"
+def test_item_url_parser(api_client):
+    id = api_client._item_url_parser(url="https://swapi.dev/api/people/1/")
+    assert id == "1/"
 
 
+def test_item_url_parser1(api_client):
+    id = api_client._item_url_parser(url="https://swapi.dev/api/people/1")
+    assert id == "1"
+
+
+def test_resource_url_generator(api_client):
+    path = api_client._resource_url_generator(resource="people/")
+    assert path == "https://gorest.co.in/people/"
+
+
+def test_item_url_generator(api_client):
+    path = api_client._item_url_generator(
+        resource="people/", url="https://gorest.co.in/people/1/"
+    )
+    assert path == "https://gorest.co.in/people/1/"
+
+
+"""
 def test_api_client_planets(api_client):
     planets = api_client.get_planets_detail(url="https://swapi.dev/api/planets/1/")
     assert planets == "Tatooine"
@@ -67,3 +85,4 @@ def test_transform_to_csv(csv, file_name):
     file_not_empty = os.stat(file).st_size
     assert file.is_file() == True
     assert file_not_empty != 0
+"""

@@ -1,57 +1,98 @@
 import requests
 from datetime import datetime
 import csv
+import re
+from urllib.parse import urljoin
 
 
 class APIClient:
     def __init__(self):
-        self.people_url = "https://swapi.dev/api/people/"
-        self.planets_url = "https://swapi.dev/api/planets/"
-        self.films_url = "https://swapi.dev/api/films/"
-        self.species_url = "https://swapi.dev/api/species/"
-        self.vehicles_url = "https://swapi.dev/api/vehicles/"
-        self.starships_url = "https://swapi.dev/api/starships/"
+        self.base_url = "https://swapi.dev/api/"
+        # self.base_url = "https://gorest.co.in/"
 
-    def get_people_detail(self, url):
-        response = requests.get(url).json()["name"]
+    def _item_url_parser(self, url):
+        match = re.search(r"\d+/$", url) or re.search(r"\d+$", url)
+        if match is None:
+            raise ValueError(f"{url} doesn't contain item ID")
+        id = url[match.start() : match.end()]
+        return id
+
+    def _resource_url_generator(self, resource):
+        return urljoin(self.base_url, resource)
+
+    def _item_url_generator(self, resource, url):
+        resource_path = self._resource_url_generator(resource)
+        id = self._item_url_parser(url)
+        return urljoin(resource_path, id)
+
+    def _get_object_from_url(self, resource, url):
+        path = self._item_url_generator(resource, url)
+        response = requests.get(url).json()
         return response
 
-    def get_planets_detail(self, url):
-        response = requests.get(url).json()["name"]
+    def _get_objects_from_url_list(self, resource, url_list):
+        result_list = []
+        if len(url_list) != 0:
+            for url in url_list:
+                response = result_list.append(self._get_object_from_url(resource, url))
+        else:
+            response = []
         return response
 
-    def get_films_detail(self, url):
-        response = requests.get(url).json()["title"]
-        return response
+    def _get_lookup_value(self, resource, lookup_key, url):
+        try:
+            value = self._get_object_from_url(resource, url)[lookup_key]
+        except KeyError:
+            print(f"{url} item does not have {lookup_key} attribute")
+        return value
 
-    def get_species_detail(self, url):
-        response = requests.get(url).json()["name"]
-        return response
+    def _get_lookup_values_list(self, resource, lookup_key, url_list):
+        values_list = []
+        for i in range(len(url_list)):
+            try:
+                values_list.append(
+                    self._get_objects_from_url_list(resource, url_list)[i][lookup_key]
+                )
+            except KeyError:
+                print(f"{url_list} items do not have {lookup_key} attribute")
+        return values_list
 
-    def get_vehicles_detail(self, url):
-        response = requests.get(url).json()["name"]
-        return response
+    def _get_data_per_page(self, page_number, resource):
+        page_url = self._resource_url_generator(resource)
+        return requests.get(page_url, params={"page": page_number}).json()
 
-    def get_starships_detail(self, url):
-        response = requests.get(url).json()["name"]
-        return response
-
-    def get_people_per_page(self, page_number):
-        page_url = self.people_url + f"?page={page_number}"
-        response = requests.get(page_url).json()
-        return response
-
-    def get_people_all(self):
+    def _get_data_all(self, resource):
         result_list = []
         page_number = 1
         next_page = True
         while next_page is not None:
-            response = self.get_people_per_page(page_number)
+            response = self._get_data_per_page(page_number, resource)
             page_number += 1
             next_page = response["next"]
             for item in response["results"]:
                 result_list.append(item)
         return result_list
+
+    def get_planets_detail(self, url, resource="planets/", lookup_key="name"):
+        return self._get_lookup_value(resource, lookup_key, url)
+
+    def get_films_detail(self, url_list, resource="films/", lookup_key="title"):
+        return self._get_lookup_values_list(resource, lookup_key, url_list)
+
+    def get_species_detail(self, url_list, resource="species/", lookup_key="name"):
+        return self._get_lookup_values_list(resource, lookup_key, url_list)
+
+    def get_vehicles_detail(self, url_list, resource="vehicles/", lookup_key="name"):
+        return self._get_lookup_values_list(resource, lookup_key, url_list)
+
+    def get_starships_detail(self, url_list, resource="starships/", lookup_key="name"):
+        return self._get_lookup_values_list(resource, lookup_key, url_list)
+
+    def get_people_per_page(self, page_number, resource="people/"):
+        return self._get_data_per_page(page_number, resource)
+
+    def get_people_all(self, resource="people/"):
+        return self._get_data_all(resource)
 
 
 class APIDataProcessor:
@@ -63,30 +104,22 @@ class APIDataProcessor:
         for item in data:
             result_dict = {}
             for key in item:
-                if key == "homeworld":
-                    result_dict[key] = self.api_client.get_planets_detail(url=item[key])
-                elif key == "films":
-                    result_dict[key] = [
-                        self.api_client.get_films_detail(url=item[key][i])
-                        for i in range(len(item[key]))
-                    ]
-                elif key == "species":
-                    result_dict[key] = [
-                        self.api_client.get_species_detail(url=item[key][i])
-                        for i in range(len(item[key]))
-                    ]
-                elif key == "vehicles":
-                    result_dict[key] = [
-                        self.api_client.get_vehicles_detail(url=item[key][i])
-                        for i in range(len(item[key]))
-                    ]
-                elif key == "starships":
-                    result_dict[key] = [
-                        self.api_client.get_starships_detail(url=item[key][i])
-                        for i in range(len(item[key]))
-                    ]
-                else:
-                    result_dict[key] = item[key]
+                result_dict["homeworld"] = self.api_client.get_planets_detail(
+                    url=item["homeworld"]
+                )
+                result_dict["films"] = self.api_client.get_films_detail(
+                    url_list=item["films"]
+                )
+                result_dict["species"] = self.api_client.get_species_detail(
+                    url_list=item["species"]
+                )
+                result_dict["vehicles"] = self.api_client.get_vehicles_detail(
+                    url_list=item["vehicles"]
+                )
+                result_dict["starships"] = self.api_client.get_starships_detail(
+                    url_list=item["starships"]
+                )
+                result_dict[key] = item[key]
             yield result_dict
 
 
@@ -123,4 +156,4 @@ class TransformJSONtoCSV:
 
 def csv_file_name():
     now = datetime.now().strftime("%m-%d-%y %H:%M:%S")
-    return f"people_{now}.csv"
+    return f"people_{now}.csv"  #

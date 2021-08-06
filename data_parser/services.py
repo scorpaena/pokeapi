@@ -3,7 +3,7 @@ from datetime import datetime
 import csv
 import re
 from urllib.parse import urljoin
-from django.core.exceptions import ObjectDoesNotExist
+from exceptions import DoesNotExistError
 
 
 class APIClient:
@@ -56,7 +56,7 @@ class APIClient:
         url = self._item_url_generator(resource, id)
         response = requests.get(url)
         if response.status_code != 200:
-            raise ObjectDoesNotExist(f"{url} has no data")
+            raise DoesNotExistError(url)
         return response.json()
 
     def _get_lookup_value(self, resource, lookup_key, id):

@@ -23,60 +23,80 @@ def api_client():
 def file_name():
     return csv_file_name()
 
+@pytest.fixture
+def url():
+    return 'https://swapi.py4e.com/api/planets/1/'
+
+@pytest.fixture
+def url1():
+    return 'https://swapi.py4e.com/api/planets/1'
+
+@pytest.fixture
+def url_list():
+    return [
+    'https://swapi.py4e.com/api/planets/1',
+    'https://swapi.py4e.com/api/planets/2/',
+    'https://swapi.py4e.com/api/planets/3'
+    ]
+
+@pytest.fixture
+def resource():
+    return 'planets/'
+
+@pytest.fixture
+def lookup_key():
+    return "name"
+
+@pytest.fixture
+def resource1():
+    return 'people/'
+
 
 def test_csv_file_name():
     file_name = csv_file_name()
     assert file_name.startswith("people") == True
 
 
-def test_item_url_parser(api_client):
-    id = api_client._item_url_parser(url="https://swapi.dev/api/people/1/")
+def test_item_url_parser(api_client, url):
+    id = api_client._item_url_parser(url)
     assert id == "1/"
 
 
-def test_item_url_parser1(api_client):
-    id = api_client._item_url_parser(url="https://swapi.dev/api/people/1")
+def test_item_url_parser1(api_client, url1):
+    id = api_client._item_url_parser(url1)
     assert id == "1"
 
 
-def test_resource_url_generator(api_client):
-    path = api_client._resource_url_generator(resource="people/")
-    assert path == "https://gorest.co.in/people/"
+def test_resource_url_generator(api_client, resource):
+    path = api_client._resource_url_generator(resource)
+    assert path == "https://swapi.py4e.com/api/planets/"
 
 
-def test_item_url_generator(api_client):
-    path = api_client._item_url_generator(
-        resource="people/", url="https://gorest.co.in/people/1/"
-    )
-    assert path == "https://gorest.co.in/people/1/"
+def test_item_url_generator(api_client, resource, url):
+    path = api_client._item_url_generator(resource, url)
+    assert path == 'https://swapi.py4e.com/api/planets/1/'
 
 
-"""
-def test_api_client_planets(api_client):
-    planets = api_client.get_planets_detail(url="https://swapi.dev/api/planets/1/")
-    assert planets == "Tatooine"
+def test_get_object_from_url(api_client, resource, url, lookup_key):
+    response = api_client._get_object_from_url(resource, url)
+    assert response[lookup_key] != None
 
 
-def test_api_client_films(api_client):
-    films = api_client.get_films_detail(url="https://swapi.dev/api/films/1/")
-    assert films == "A New Hope"
+def test_get_lookup_value(api_client, resource, lookup_key, url):
+    value = api_client._get_lookup_value(resource, lookup_key, url)
+    assert isinstance(value, str) == True
+    assert len(value) != 0
 
 
-def test_api_client_species(api_client):
-    species = api_client.get_species_detail(url="https://swapi.dev/api/species/1/")
-    assert species == "Human"
+def test_get_lookup_values_list(api_client, resource, lookup_key, url_list):
+    value = api_client._get_lookup_values_list(resource, lookup_key, url_list)
+    assert isinstance(value, list) == True
+    assert len(value) == 3
 
 
-def test_api_client_vehicles(api_client):
-    vehicles = api_client.get_vehicles_detail(url="https://swapi.dev/api/vehicles/4/")
-    assert vehicles == "Sand Crawler"
-
-
-def test_api_client_starships(api_client):
-    starships = api_client.get_starships_detail(
-        url="https://swapi.dev/api/starships/2/"
-    )
-    assert starships == "CR90 corvette"
+def test_get_data_per_page(api_client, resource1):
+    data = api_client._get_data_per_page(resource=resource1, page_number=1)
+    assert data['results'][0]['name'] == 'Luke Skywalker'
 
 
 def test_transform_to_csv(csv, file_name):
@@ -85,4 +105,3 @@ def test_transform_to_csv(csv, file_name):
     file_not_empty = os.stat(file).st_size
     assert file.is_file() == True
     assert file_not_empty != 0
-"""

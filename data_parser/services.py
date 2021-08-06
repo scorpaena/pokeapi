@@ -3,12 +3,12 @@ from datetime import datetime
 import csv
 import re
 from urllib.parse import urljoin
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class APIClient:
     def __init__(self):
-        self.base_url = "https://swapi.dev/api/"
-        # self.base_url = "https://gorest.co.in/"
+        self.base_url = "https://swapi.py4e.com/api/"
 
     def _item_url_parser(self, url):
         match = re.search(r"\d+/$", url) or re.search(r"\d+$", url)
@@ -27,17 +27,10 @@ class APIClient:
 
     def _get_object_from_url(self, resource, url):
         path = self._item_url_generator(resource, url)
-        response = requests.get(url).json()
-        return response
-
-    def _get_objects_from_url_list(self, resource, url_list):
-        result_list = []
-        if len(url_list) != 0:
-            for url in url_list:
-                response = result_list.append(self._get_object_from_url(resource, url))
-        else:
-            response = []
-        return response
+        response = requests.get(url)
+        if response.status_code != 200:
+            raise ObjectDoesNotExist(f'{url} has no data')
+        return response.json()
 
     def _get_lookup_value(self, resource, lookup_key, url):
         try:
@@ -48,13 +41,8 @@ class APIClient:
 
     def _get_lookup_values_list(self, resource, lookup_key, url_list):
         values_list = []
-        for i in range(len(url_list)):
-            try:
-                values_list.append(
-                    self._get_objects_from_url_list(resource, url_list)[i][lookup_key]
-                )
-            except KeyError:
-                print(f"{url_list} items do not have {lookup_key} attribute")
+        for url in url_list:
+            values_list.append(self._get_lookup_value(resource, lookup_key, url))
         return values_list
 
     def _get_data_per_page(self, page_number, resource):
@@ -104,6 +92,7 @@ class APIDataProcessor:
         for item in data:
             result_dict = {}
             for key in item:
+                result_dict[key] = item[key]
                 result_dict["homeworld"] = self.api_client.get_planets_detail(
                     url=item["homeworld"]
                 )
@@ -119,7 +108,6 @@ class APIDataProcessor:
                 result_dict["starships"] = self.api_client.get_starships_detail(
                     url_list=item["starships"]
                 )
-                result_dict[key] = item[key]
             yield result_dict
 
 
@@ -156,4 +144,4 @@ class TransformJSONtoCSV:
 
 def csv_file_name():
     now = datetime.now().strftime("%m-%d-%y %H:%M:%S")
-    return f"people_{now}.csv"  #
+    return f"people_{now}.csv"

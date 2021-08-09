@@ -2,8 +2,11 @@ import requests
 from datetime import datetime
 import csv
 import re
+import os
 from urllib.parse import urljoin
-from exceptions import DoesNotExistError
+from django.core.exceptions import ObjectDoesNotExist
+from .exceptions import DoesNotExistError
+from .models import PokeFilesModel
 
 
 class APIClient:
@@ -67,8 +70,8 @@ class APIClient:
 
     def _get_lookup_values_list(self, resource, lookup_key, id):
         values_list = []
-        for id in id:
-            values_list.append(self._get_lookup_value(resource, lookup_key, id))
+        for item in id:
+            values_list.append(self._get_lookup_value(resource, lookup_key, id=item))
         return values_list
 
     def _get_data_per_page(self, page_number, resource):
@@ -87,7 +90,6 @@ class APIClient:
         return response
 
     def _get_data_all(self, resource):
-        result_list = []
         page_number = 1
         next_page = True
         while next_page is not None:
@@ -95,8 +97,7 @@ class APIClient:
             page_number += 1
             next_page = response["next"]
             for item in response["results"]:
-                result_list.append(item)
-        return result_list
+                yield item
 
     def get_planets_detail(self, id, resource="planets/", lookup_key="name"):
         return self._get_lookup_value(resource, lookup_key, id)
@@ -127,30 +128,27 @@ class APIDataProcessor:
     def people_all_data_set(self):
         data = self.api_client.get_people_all()
         for item in data:
-            result_dict = {}
-            for key in item:
-                result_dict[key] = item[key]
-                result_dict["homeworld"] = self.api_client.get_planets_detail(
-                    id=item["homeworld"]
-                )
-                result_dict["films"] = self.api_client.get_films_detail(
-                    id=item["films"]
-                )
-                result_dict["species"] = self.api_client.get_species_detail(
-                    id=item["species"]
-                )
-                result_dict["vehicles"] = self.api_client.get_vehicles_detail(
-                    id=item["vehicles"]
-                )
-                result_dict["starships"] = self.api_client.get_starships_detail(
-                    id=item["starships"]
-                )
+            result_dict = item
+            result_dict["homeworld"] = self.api_client.get_planets_detail(
+                id=item["homeworld"]
+            )
+            result_dict["films"] = self.api_client.get_films_detail(id=item["films"])
+            result_dict["species"] = self.api_client.get_species_detail(
+                id=item["species"]
+            )
+            result_dict["vehicles"] = self.api_client.get_vehicles_detail(
+                id=item["vehicles"]
+            )
+            result_dict["starships"] = self.api_client.get_starships_detail(
+                id=item["starships"]
+            )
             yield result_dict
 
 
-class TransformJSONtoCSV:
+class CSVFileProcessor:
     def __init__(self):
         self.data_processor = APIDataProcessor()
+        self.file_folder_path = "data_parser/csv_files/"
         self.csv_columns = [
             "name",
             "height",
@@ -170,6 +168,21 @@ class TransformJSONtoCSV:
             "url",
         ]
 
+    def _get_file_name(self, id):
+        try:
+            object = PokeFilesModel.objects.get(id=id)
+        except ObjectDoesNotExist as error:
+            raise error
+        return object.file_name
+
+    def _get_file_path(self, id):
+        file_name = self._get_file_name(id)
+        path = f"{self.file_folder_path}{file_name}"
+        is_file = os.path.isfile(path)
+        if not is_file:
+            raise FileNotFoundError(f"{file_name} is not found")
+        return path
+
     def create_csv_file(self, file_name):
         data_to_save = self.data_processor.people_all_data_set()
         with open(f"data_parser/csv_files/{file_name}", "w") as csv_file:
@@ -177,6 +190,19 @@ class TransformJSONtoCSV:
             csv_writer.writeheader()
             for item in data_to_save:
                 csv_writer.writerow(item)
+
+    def get_file_length(self, id):
+        path = self._get_file_path(id)
+        with open(path) as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            return sum(1 for row in csv_reader)
+
+    def read_from_csv_file(self, id):
+        path = self._get_file_path(id)
+        with open(path) as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for item in csv_reader:
+                yield item
 
 
 def csv_file_name():
